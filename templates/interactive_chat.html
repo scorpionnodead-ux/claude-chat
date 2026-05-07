@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code Interactive</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(34, 197, 94, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .permission-banner {
+            background: rgba(251, 191, 36, 0.2);
+            border: 2px solid #fbbf24;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .permission-banner.active {
+            display: block;
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .permission-content {
+            margin-bottom: 15px;
+        }
+
+        .permission-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .permission-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-yes {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-no {
+            background: #ef4444;
+            color: white;
+        }
+
+        .chat-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            max-height: 50vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .message.human, .message.user {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(37, 99, 235, 0.3));
+            margin-left: 60px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .message.assistant {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.3));
+            margin-right: 60px;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .message-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .input-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-box {
+            display: flex;
+            gap: 15px;
+        }
+
+        .input-box textarea {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 15px;
+            resize: vertical;
+            min-height: 60px;
+            font-family: inherit;
+        }
+
+        .input-box textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .input-box button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            align-self: flex-end;
+        }
+
+        .input-box button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 Claude Code Interactive</h1>
+            <p>Two-way communication with CLI</p>
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span>CONNECTED</span>
+            </div>
+        </div>
+
+        <div class="permission-banner" id="permissionBanner">
+            <div class="permission-content">
+                <h3>⚠️ Permission Required</h3>
+                <p id="permissionText">Claude is asking for permission...</p>
+            </div>
+            <div class="permission-buttons">
+                <button class="btn-yes" onclick="answerPermission('yes')">✓ Yes, Allow</button>
+                <button class="btn-no" onclick="answerPermission('no')">✗ No, Deny</button>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div style="text-align: center; opacity: 0.7; padding: 40px;">
+                Loading conversation...
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-box">
+                <textarea id="messageInput" placeholder="Type your message to Claude..."></textarea>
+                <button onclick="sendMessage()" id="sendButton">Send</button>
+            </div>
+            <div class="status" id="status">Ready</div>
+        </div>
+    </div>
+
+    <script>
+        let currentPermissionId = null;
+
+        function addMessage(role, content) {
+            const container = document.getElementById('chatContainer');
+
+            if (container.children.length === 1 && container.children[0].style.textAlign === 'center') {
+                container.innerHTML = '';
+            }
+
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.textContent = (role === 'human' || role === 'user') ? '👤 You' : '🤖 Claude';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.textContent = content;
+
+            div.appendChild(label);
+            div.appendChild(contentDiv);
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function loadMessages() {
+            try {
+                const response = await fetch('/api/messages');
+                const data = await response.json();
+
+                if (data.success && data.messages.length > 0) {
+                    const container = document.getElementById('chatContainer');
+                    container.innerHTML = '';
+
+                    data.messages.forEach(msg => {
+                        addMessage(msg.role, msg.content);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+
+        async function checkPermissions() {
+            try {
+                const response = await fetch('/api/permission-requests');
+                const data = await response.json();
+
+                if (data.success && data.requests.length > 0) {
+                    const request = data.requests[0];
+                    currentPermissionId = request.id;
+                    document.getElementById('permissionText').textContent = request.description;
+                    document.getElementById('permissionBanner').classList.add('active');
+                } else {
+                    document.getElementById('permissionBanner').classList.remove('active');
+                }
+            } catch (error) {
+                console.error('Error checking permissions:', error);
+            }
+        }
+
+        async function answerPermission(answer) {
+            if (!currentPermissionId) return;
+
+            try {
+                await fetch('/api/answer-permission', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        request_id: currentPermissionId,
+                        answer: answer
+                    })
+                });
+
+                document.getElementById('permissionBanner').classList.remove('active');
+                currentPermissionId = null;
+                document.getElementById('status').textContent = `Permission ${answer === 'yes' ? 'granted' : 'denied'}`;
+            } catch (error) {
+                console.error('Error answering permission:', error);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            document.getElementById('status').textContent = 'Sending...';
+
+            addMessage('user', message);
+            input.value = '';
+
+            try {
+                const response = await fetch('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('status').textContent = 'Message sent to Claude CLI';
+                } else {
+                    throw new Error(data.error || 'Failed to send');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Load messages and check permissions
+        loadMessages();
+        checkPermissions();
+
+        // Auto-refresh
+        setInterval(loadMessages, 2000);
+        setInterval(checkPermissions, 1000);
+    </script>
+</body>
+</html>
