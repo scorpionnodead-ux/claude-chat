@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code Web Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .chat-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: rgba(100, 200, 255, 0.3);
+            margin-left: 50px;
+        }
+
+        .message.assistant {
+            background: rgba(150, 100, 255, 0.3);
+            margin-right: 50px;
+        }
+
+        .message-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .message-content {
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .input-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-box {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .input-box textarea {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 15px;
+            resize: vertical;
+            min-height: 60px;
+            max-height: 200px;
+            font-family: inherit;
+        }
+
+        .input-box textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .input-box button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 15px;
+            transition: transform 0.2s;
+        }
+
+        .input-box button:hover {
+            transform: translateY(-2px);
+        }
+
+        .input-box button:active {
+            transform: translateY(0);
+        }
+
+        .input-box button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 15px;
+            min-height: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 Claude Code Web Chat</h1>
+            <p>Direct access to your local Claude CLI</p>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div style="text-align: center; opacity: 0.7; padding: 40px;">
+                Start chatting with Claude Code
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-box">
+                <textarea id="messageInput" placeholder="Type your message..." rows="2"></textarea>
+                <button onclick="sendMessage()" id="sendButton">Send</button>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        function addMessage(role, content) {
+            const container = document.getElementById('chatContainer');
+
+            // Remove placeholder if exists
+            if (container.children.length === 1 && container.children[0].style.textAlign === 'center') {
+                container.innerHTML = '';
+            }
+
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.textContent = role === 'user' ? '👤 You' : '🤖 Claude';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+
+            div.appendChild(label);
+            div.appendChild(contentDiv);
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            const sendButton = document.getElementById('sendButton');
+            const statusDiv = document.getElementById('status');
+
+            sendButton.disabled = true;
+            statusDiv.innerHTML = '<span class="loading"></span> Sending to Claude...';
+
+            addMessage('user', message);
+            input.value = '';
+
+            try {
+                const response = await fetch('/api/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+
+                addMessage('assistant', data.response);
+                statusDiv.textContent = '';
+            } catch (error) {
+                console.error('Error:', error);
+                statusDiv.textContent = '❌ Error: ' + error.message;
+                addMessage('assistant', '❌ Error: ' + error.message);
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-focus input
+        document.getElementById('messageInput').focus();
+    </script>
+</body>
+</html>

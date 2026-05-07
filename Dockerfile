@@ -1,10 +1,12 @@
-FROM nginx:alpine
+FROM python:3.11-slim
 
-COPY index.html /usr/share/nginx/html/
-COPY style.css /usr/share/nginx/html/
-COPY script.js /usr/share/nginx/html/
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
 
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "app:app"]
