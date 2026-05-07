@@ -263,11 +263,13 @@
                     })
                 });
 
+                const data = await response.json();
+
                 if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
+                    const errorMsg = data.error?.message || `API error: ${response.status}`;
+                    throw new Error(errorMsg);
                 }
 
-                const data = await response.json();
                 const assistantMessage = data.content[0].text;
 
                 addMessage('assistant', assistantMessage);
@@ -277,7 +279,7 @@
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('status').textContent = 'Error: ' + error.message;
-                addMessage('assistant', 'Sorry, there was an error processing your request.');
+                addMessage('assistant', 'Error: ' + error.message);
             } finally {
                 sendButton.disabled = false;
             }
