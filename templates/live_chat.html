@@ -252,51 +252,57 @@
                 }
 
                 // Только обновляем если есть новые сообщения
-                if (messages.length !== lastMessageCount || isFirstLoad) {
-                    container.innerHTML = '';
-
-                    messages.forEach(msg => {
-                        const div = document.createElement('div');
-                        // Поддержка обоих форматов: type и role
-                        const role = msg.role || msg.type || 'unknown';
-                        div.className = `message ${role === 'human' ? 'user' : role}`;
-
-                        const label = document.createElement('div');
-                        label.className = 'message-label';
-                        const icon = (role === 'user' || role === 'human') ? '👤' : '🤖';
-                        const name = (role === 'user' || role === 'human') ? 'User' : 'Claude';
-                        label.innerHTML = `${icon} ${name}`;
-
-                        const content = document.createElement('div');
-                        content.className = 'message-content';
-                        content.textContent = msg.content;
-
-                        if (msg.timestamp) {
-                            const timestamp = document.createElement('div');
-                            timestamp.className = 'timestamp';
-                            timestamp.textContent = formatTimestamp(msg.timestamp);
-                            div.appendChild(label);
-                            div.appendChild(content);
-                            div.appendChild(timestamp);
-                        } else {
-                            div.appendChild(label);
-                            div.appendChild(content);
-                        }
-
-                        container.appendChild(div);
-                    });
+                if (messages.length !== lastMessageCount) {
+                    if (isFirstLoad) {
+                        container.innerHTML = '';
+                        messages.forEach(msg => addMessageToDOM(msg));
+                        isFirstLoad = false;
+                    } else {
+                        // Добавляем только новые сообщения
+                        const newMessages = messages.slice(lastMessageCount);
+                        newMessages.forEach(msg => addMessageToDOM(msg));
+                    }
 
                     // Scroll to bottom
                     container.scrollTop = container.scrollHeight;
-
                     lastMessageCount = messages.length;
-                    isFirstLoad = false;
                 }
 
                 document.getElementById('status').textContent = `${messages.length} messages`;
             } catch (error) {
                 console.error('Error loading messages:', error);
                 document.getElementById('status').textContent = '❌ Connection error';
+            }
+        }
+
+        function addMessageToDOM(msg) {
+            const container = document.getElementById('chatContainer');
+            const div = document.createElement('div');
+            const role = msg.role || msg.type || 'unknown';
+            div.className = `message ${role === 'human' ? 'user' : role}`;
+
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            const icon = (role === 'user' || role === 'human') ? '👤' : '🤖';
+            const name = (role === 'user' || role === 'human') ? 'User' : 'Claude';
+            label.innerHTML = `${icon} ${name}`;
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = msg.content;
+
+            div.appendChild(label);
+            div.appendChild(content);
+
+            if (msg.timestamp) {
+                const timestamp = document.createElement('div');
+                timestamp.className = 'timestamp';
+                timestamp.textContent = formatTimestamp(msg.timestamp);
+                div.appendChild(timestamp);
+            }
+
+            container.appendChild(div);
+        }
             }
         }
 
