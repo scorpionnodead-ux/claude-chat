@@ -249,16 +249,13 @@
             input.value = '';
 
             try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': apiKey,
-                        'anthropic-version': '2023-06-01'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 4096,
+                        apiKey: apiKey,
                         messages: conversationHistory
                     })
                 });
@@ -266,7 +263,7 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    const errorMsg = data.error?.message || `API error: ${response.status}`;
+                    const errorMsg = data.error?.message || data.error || `API error: ${response.status}`;
                     throw new Error(errorMsg);
                 }
 
