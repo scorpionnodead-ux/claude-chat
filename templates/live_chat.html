@@ -228,7 +228,7 @@
 
         async function loadMessages() {
             try {
-                const response = await fetch('/api/messages');
+                const response = await fetch('/api/messages?t=' + Date.now());
                 const data = await response.json();
 
                 if (!data.success) {
