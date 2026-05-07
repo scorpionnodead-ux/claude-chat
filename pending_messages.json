@@ -8,5 +8,10 @@
     "message": "привет",
     "timestamp": "2026-05-07T11:00:53.890844",
     "processed": true
+  },
+  {
+    "message": "привет",
+    "timestamp": "2026-05-07T11:30:24.136441",
+    "processed": true
   }
 ]

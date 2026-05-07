@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, make_response
 from flask_cors import CORS
 import subprocess
 import json
@@ -51,15 +51,27 @@ def save_permission_requests(requests):
 
 @app.route('/')
 def index():
-    return render_template('live_chat.html')
+    response = make_response(render_template('live_chat.html'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/chat')
 def chat():
-    return render_template('interactive_chat.html')
+    response = make_response(render_template('interactive_chat.html'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/live')
 def live():
-    return render_template('live_chat.html')
+    response = make_response(render_template('live_chat.html'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/api/messages')
 def get_messages():
